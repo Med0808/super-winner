@@ -29,6 +29,7 @@ app.post("/create-payment-intent", async (req, res) => {
   }
 });
 
-app.use("*", (req, res) => res.status(404).json({ error: "Not Found" }));
+app.all("/*", (req, res) => res.status(404).json({ error: "Not Found" }));
+
 
 export default app;
