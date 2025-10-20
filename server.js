@@ -1,71 +1,48 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import serverless from 'serverless-http';
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import Stripe from "stripe";
 
-// Load environment variables
 dotenv.config();
 
 const app = express();
-
-// Middleware
-app.use(cors({
-  origin: '*',
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-}));
-
+app.use(cors());
 app.use(express.json());
 
-// Routes
-app.get('/', (req, res) => {
-  res.json({ 
-    message: 'Hello from Vercel Server!', 
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
-  });
+// Health check
+app.get("/", (req, res) => {
+  res.json({ message: "Server running on Vercel 🚀" });
 });
 
-app.get('/api', (req, res) => {
-  res.json({ 
-    message: 'API is working!', 
-    timestamp: new Date().toISOString()
-  });
-});
+// Stripe PaymentIntent route
+app.post("/create-payment-intent", async (req, res) => {
+  try {
+    const { amount, currency = "eur" } = req.body;
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ error: "Invalid amount" });
+    }
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'OK', 
-    timestamp: new Date().toISOString()
-  });
-});
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: "2024-06-20",
+    });
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  res.status(500).json({ 
-    error: 'Internal Server Error',
-    message: err.message 
-  });
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(amount * 100),
+      currency,
+      automatic_payment_methods: { enabled: true },
+    });
+
+    res.json({ clientSecret: paymentIntent.client_secret });
+  } catch (err) {
+    console.error("❌ Stripe error:", err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({ 
-    error: 'Not Found',
-    message: `Route ${req.originalUrl} not found`
-  });
+app.use("*", (req, res) => {
+  res.status(404).json({ error: "Not Found" });
 });
 
 // Export for Vercel
-export default serverless(app);
-
-// For local development
-if (process.env.NODE_ENV !== 'production') {
-  const PORT = process.env.PORT || 3001;
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-  });
-}
+export default app;
