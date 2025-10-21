@@ -20,6 +20,20 @@ export default async function handler(req, res) {
     return;
   }
 
+  // Handle GET requests for testing
+  if (req.method === 'GET') {
+    return res.status(200).json({ 
+      message: 'Payment Intent API is working! Use POST method to create payment intents.',
+      example: {
+        method: 'POST',
+        body: {
+          amount: 10.00,
+          currency: 'eur'
+        }
+      }
+    });
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
