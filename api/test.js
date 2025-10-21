@@ -12,7 +12,6 @@ export default function handler(req, res) {
     message: 'Test endpoint working!',
     method: req.method,
     url: req.url,
-    headers: req.headers,
-    body: req.body
+    timestamp: new Date().toISOString()
   });
 }
